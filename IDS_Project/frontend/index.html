@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI IDS Dashboard</title>
+    <style>
+        /* Background Styling with Blur */
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background: url('background.jpg') no-repeat center center/cover;
+            color: white;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        /* Blur Effect */
+        body::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5); /* Semi-transparent black */
+            backdrop-filter: blur(6px); /* Medium blur effect */
+            z-index: -1;
+        }
+
+        h1 {
+            font-size: 38px;
+            text-shadow: 0px 0px 15px rgba(0, 255, 0, 0.8); /* Green glow effect */
+            animation: fadeIn 1.5s ease-in-out;
+        }
+
+        p {
+            font-size: 18px;
+            max-width: 600px;
+            text-align: center;
+            line-height: 1.6;
+            margin-bottom: 20px;
+            text-shadow: 0px 0px 10px rgba(0, 255, 0, 0.5);
+        }
+
+        input {
+            padding: 12px;
+            margin: 10px;
+            font-size: 18px;
+            border-radius: 8px;
+            border: none;
+            text-align: center;
+            transition: all 0.3s ease-in-out;
+            box-shadow: 0px 0px 10px rgba(0, 255, 0, 0.5);
+        }
+
+        input:focus {
+            transform: scale(1.05);
+            box-shadow: 0px 0px 15px rgba(0, 255, 0, 0.7);
+            outline: none;
+        }
+
+        /* Button Styling with Glow */
+        button {
+            padding: 14px 24px;
+            font-size: 20px;
+            font-weight: bold;
+            background: linear-gradient(90deg, #00ff00, #00cc66);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease-in-out;
+            box-shadow: 0px 4px 15px rgba(0, 255, 0, 0.8);
+        }
+
+        button:hover {
+            transform: scale(1.1);
+            box-shadow: 0px 6px 20px rgba(0, 255, 0, 1);
+        }
+
+        #result, #sms-status {
+            font-size: 22px;
+            margin-top: 20px;
+            font-weight: bold;
+            text-shadow: 0px 0px 15px rgba(0, 255, 0, 0.7);
+            opacity: 0;
+            transition: opacity 0.8s ease-in-out;
+        }
+
+        /* Popup Styling */
+        .popup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0px 0px 15px rgba(0, 255, 0, 1);
+        }
+
+        .popup button {
+            margin-top: 10px;
+            padding: 10px;
+            font-size: 18px;
+            background: #00cc66;
+            border: none;
+            color: white;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        .popup button:hover {
+            background: #009955;
+        }
+
+        /* Fade In Animation */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+
+    <script>
+        function showPopup(message) {
+            const popup = document.getElementById("popup");
+            document.getElementById("popup-message").innerText = message;
+            popup.style.display = "block";
+        }
+
+        function closePopup() {
+            document.getElementById("popup").style.display = "none";
+        }
+
+        async function checkIntrusion() {
+            const length = document.getElementById("length").value;
+            const protocol = document.getElementById("protocol").value;
+            const resultBox = document.getElementById("result");
+            const smsStatus = document.getElementById("sms-status");
+
+            if (!length || !protocol) {
+                resultBox.innerText = "⚠️ Please enter all fields!";
+                resultBox.style.color = "orange";
+                resultBox.style.opacity = 1;
+                return;
+            }
+
+            resultBox.innerText = "⏳ Checking...";
+            resultBox.style.color = "white";
+            resultBox.style.opacity = 1;
+
+            try {
+                const response = await fetch("http://127.0.0.1:5000/detect", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ length, protocol })
+                });
+
+                const data = await response.json();
+                resultBox.innerText = data.result;
+                resultBox.style.color = data.result.includes("Intrusion") ? "red" : "lime";
+
+                if (data.result.includes("Intrusion")) {
+                    smsStatus.innerText = "📩 SMS Alert Sent!";
+                    smsStatus.style.opacity = 1;
+                    showPopup("🚨 Intrusion detected! An SMS alert has been sent.");
+                } else {
+                    smsStatus.innerText = "";
+                    smsStatus.style.opacity = 0;
+                }
+
+            } catch (error) {
+                resultBox.innerText = "❌ Error connecting to server!";
+                resultBox.style.color = "red";
+                resultBox.style.opacity = 1;
+            }
+        }
+    </script>
+</head>
+<body>
+    <h1> AI-POWERED INTRUSION DETECTION FOR ELECTRIC VEHICLES</h1>
+    <p>This system analyzes network traffic and detects potential intrusions in real-time using AI-powered machine learning models. If an intrusion is detected, an SMS alert will be sent to notify the user.</p>
+    
+    <input type="number" id="length" placeholder="Packet Length">
+    <input type="number" id="protocol" placeholder="Protocol (6 for TCP, 17 for UDP)">
+    <button onclick="checkIntrusion()">Detect Intrusion</button>
+    <h2 id="result">Waiting for input...</h2>
+    <h3 id="sms-status"></h3>
+
+    <!-- Popup Alert -->
+    <div id="popup" class="popup">
+        <h2 id="popup-message"></h2>
+        <button onclick="closePopup()">Close</button>
+    </div>
+</body>
+</html>
